@@ -1,0 +1,20 @@
+.gcloudignore
+# .gcloudignore
+
+# Python sanal ortamları
+venv/
+*.pyc
+__pycache__/
+
+# Hassas dosyalar
+.env
+.env.example
+
+# IDE ve sistem dosyaları
+.idea/
+.vscode/
+.DS_Store
+
+# Git dosyaları
+.git/
+.gitignore

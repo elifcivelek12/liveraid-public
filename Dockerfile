@@ -1,10 +1,16 @@
+# Python'un resmi imajını temel al
 FROM python:3.9-slim
 
-WORKDIR /usr/src/app
+# Çalışma dizinini ayarla
+WORKDIR /app
 
-COPY requirements.txt ./
+# Bağımlılıkları kopyala ve kur
+COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Proje dosyalarını kopyala
 COPY . .
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
+# Uygulamayı çalıştırmak için Gunicorn'u kullan
+# PORT ortam değişkeni Cloud Run tarafından otomatik olarak sağlanır
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app
