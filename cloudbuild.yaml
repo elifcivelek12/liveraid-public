@@ -67,7 +67,3 @@ availableSecrets:
 # Gizli olmayan ve komut satırından verilebilecek değişkenler
 substitutions:
   _CLOUD_SQL_CONNECTION_NAME: 'tactile-vial-468307-d3:europe-west3:liveraid-postgres'
-
-options:
-  # Virgül yerine farklı bir ayırıcı kullanmak, gcloud komutunun doğru çalışmasını sağlar
-  env_separator: '##'
