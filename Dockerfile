@@ -13,4 +13,4 @@ COPY . .
 
 # Uygulamayı çalıştırmak için Gunicorn'u kullan
 # PORT ortam değişkeni Cloud Run tarafından otomatik olarak sağlanır
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "8", "--timeout", "0", "app:app"]
