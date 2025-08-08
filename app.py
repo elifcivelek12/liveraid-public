@@ -28,7 +28,9 @@ from reportlab.pdfbase.ttfonts import TTFont
 # Load environment variables
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev_secret_key')
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
+if not app.secret_key:
+    raise ValueError("FLASK_SECRET_KEY ortam değişkeni ayarlanmamış! Uygulama başlatılamıyor.")
 
 # Configure Google AI Client
 genai_client = Client(api_key=os.environ.get('GOOGLE_AI_API_KEY'))
