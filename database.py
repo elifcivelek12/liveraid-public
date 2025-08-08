@@ -26,6 +26,46 @@ class DatabaseManager:
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
 
+<<<<<<< HEAD
+=======
+    def create_database_if_not_exists(self):
+        """Create the database if it doesn't exist.
+        Note: For Cloud SQL, the database is typically created through the GCP console or gcloud CLI.
+        This function will attempt to connect and verify its existence, but creation might fail
+        if the user does not have the necessary permissions.
+        """
+        try:
+            # Temporary connection to the default 'postgres' database to check for our db
+            conn = self.connector.connect(
+                self.instance_connection_name,
+                "pg8000",
+                user=self.db_user,
+                password=self.db_password,
+                db="postgres", # Connect to the default database
+                ip_type=IPTypes.PUBLIC
+            )
+            conn.autocommit = True
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT 1 FROM pg_catalog.pg_database WHERE datname = %s", (self.db_name,))
+            exists = cursor.fetchone()
+
+            if not exists:
+                print(f"Database '{self.db_name}' not found. Attempting to create...")
+                # The command below is not standard SQL and might not work on all postgres versions.
+                # It's generally better to create the database via the cloud provider's tools.
+                cursor.execute(f"CREATE DATABASE \"{self.db_name}\"")
+                print(f"✅ Database '{self.db_name}' created successfully.")
+            else:
+                print(f"✅ Database '{self.db_name}' already exists.")
+
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            # Log the error but continue, assuming the DB exists and the issue might be permissions
+            print(f"⚠️  Could not check or create database '{self.db_name}'. Please ensure it exists. Error: {e}")
+
+>>>>>>> parent of 07ee83c (removed create_database_if_not_exist)
 
     @contextmanager
     def get_connection(self):
