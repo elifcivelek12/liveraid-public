@@ -13,8 +13,8 @@ from google.cloud.sql.connector import Connector, IPTypes
 class DatabaseManager:
     def __init__(self):
         # Variables from the first code snippet
-        self.user = os.environ.get('DB_USER', 'postgres')
-        self.password = os.environ.get('DB_PASSWORD')
+        self.db_user = os.environ.get('DB_USER', 'postgres')
+        self.db_password = os.environ.get('DB_PASS')
         self.db_name = os.environ.get("DB_NAME", "liver_assessment")
         self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
 
@@ -37,8 +37,8 @@ class DatabaseManager:
             conn = self.connector.connect(
                 self.instance_connection_name,
                 "pg8000",
-                user=self.user,
-                password=self.password,
+                user=self.db_user,
+                password=self.db_password,
                 db="postgres", # Connect to the default database
                 ip_type=IPTypes.PUBLIC
             )
@@ -72,8 +72,8 @@ class DatabaseManager:
             conn = self.connector.connect(
                 self.instance_connection_name,
                 "pg8000",
-                user=self.user,
-                password=self.password,
+                user=self.db_user,
+                password=self.db_password,
                 db=self.db_name,
                 ip_type=IPTypes.PUBLIC,
                 cursor_factory=psycopg2.extras.RealDictCursor
