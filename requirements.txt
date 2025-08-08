@@ -22,3 +22,7 @@ psycopg2-binary
 cloud-sql-python-connector[pg8000]
 bcrypt
 gunicorn
+SQLAlchemy
+beautifulsoup4
+Flask-Babel
+passlib
