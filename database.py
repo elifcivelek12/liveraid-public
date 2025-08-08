@@ -75,7 +75,7 @@ class DatabaseManager:
                 user=self.db_user,
                 password=self.db_password,
                 db=self.db_name,
-                ip_type=IPTypes.PUBLIC,
+                ip_type=IPTypes.PRIVATE,
                 cursor_factory=psycopg2.extras.RealDictCursor
             )
             yield conn
