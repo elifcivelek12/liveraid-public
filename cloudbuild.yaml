@@ -15,26 +15,27 @@ steps:
       - 'push'
       - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
 
-  # 3. Adım: Alembic ile veritabanı migration'larını çalıştır
-
+    # 3. Adım: Alembic ile veritabanı migration'larını çalıştır
   - name: 'gcr.io/google-appengine/exec-wrapper'
     id: 'Run Alembic Migrations'
     args:
       - '-i'
       - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '-s'
-      - '${PROJECT_ID}:${_LOCATION}:${_DB_INSTANCE_NAME}'
+      - '${_CLOUD_SQL_CONNECTION_NAME}' # Cloud SQL instance connection name
+      # 'secretEnv' ile tanımlanan değişkenleri burada doğrudan kullanıyoruz.
       - '-e'
-      - 'DB_USER=${_DB_USER}'
+      - 'DB_USER=${DB_USER}'
       - '-e'
-      - 'DB_PASS=${_DB_PASS}'
+      - 'DB_PASS=${DB_PASS}'
       - '-e'
-      - 'DB_NAME=${_DB_NAME}'
+      - 'DB_NAME=${DB_NAME}'
       - '--'
       - 'alembic'
       - 'upgrade'
       - 'head'
-    secretEnv: ['_DB_USER', '_DB_PASS', '_DB_NAME']
+    # Bu adımın ortamına Secret Manager'dan gizli değerleri yüklüyoruz.
+    secretEnv: ['DB_USER', 'DB_PASS', 'DB_NAME']
 
   # 4. Adım: Uygulamayı Cloud Run'a dağıt
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -43,16 +44,17 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - '${_liveraid-service}' # Cloud Run servis adın
+      - '${_SERVICE_NAME}'
       - '--image'
       - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '--region'
       - '${_LOCATION}'
       - '--platform'
       - 'managed'
-      - '--allow-unauthenticated' 
+      - '--allow-unauthenticated'
+      # Cloud Run servisine gizli değerleri en güvenli yöntemle bağlıyoruz.
       - '--set-secrets'
-      - 'DB_USER=${_DB_USER_SECRET_NAME}:latest,DB_PASS=${_DB_PASS_SECRET_NAME}:latest,DB_NAME=${_DB_NAME_SECRET_NAME}:latest,FLASK_SECRET_KEY=${_FLASK_SECRET_KEY_SECRET_NAME}:latest,GOOGLE_AI_API_KEY=${_GOOGLE_AI_API_KEY_SECRET_NAME}:latest,OPENROUTER_API_KEY=${_OPENROUTER_API_KEY_SECRET_NAME}:latest,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME_SECRET_NAME}:latest'
+      - 'DB_USER=${_DB_USER_SECRET_NAME}:latest,DB_PASS=${_DB_PASS_SECRET_NAME}:latest,DB_NAME=${_DB_NAME_SECRET_NAME}:latest,FLASK_SECRET_KEY=${_FLASK_SECRET_KEY_SECRET_NAME}:latest,GOOGLE_AI_API_KEY=${_GOOGLE_AI_API_KEY_SECRET_NAME}:latest,OPENROUTER_API_KEY=${_OPENROUTER_API_KEY_SECRET_NAME}:latest,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME_SECRET_NAME}:latest' 
       - '--add-cloudsql-instances'
       - '${_CLOUD_SQL_CONNECTION_NAME}'
 
@@ -61,18 +63,19 @@ steps:
 availableSecrets:
   secretManager:
   - versionName: projects/${PROJECT_ID}/secrets/${_DB_USER_SECRET_NAME}/versions/latest
-    env: '_DB_USER'
-  - versionName: projects/${PROJECT_ID}/secrets/${_DB_PASS_SECRET_NAME}/versions/latest
-    env: '_DB_PASS'
+    env: 'DB_USER' # Ortam değişkeninin adı: DB_USER
+  - versionName: projects/${_DB_PASS_SECRET_NAME}/secrets/DB_PASS/versions/latest
+    env: 'DB_PASS' # Ortam değişkeninin adı: DB_PASS
   - versionName: projects/${PROJECT_ID}/secrets/${_DB_NAME_SECRET_NAME}/versions/latest
-    env: '_DB_NAME'
+    env: 'DB_NAME' # Ortam değişkeninin adı: DB_NAME
+
 
 # Build sırasında komut satırından veya tetikleyici ayarlarından verilebilecek değişkenler.
 substitutions:
-  _LOCATION: 'europe-west4' # Projenin bölgesi
-  _REPOSITORY: 'liveraid-public' # Artifact Registry'deki depo adı
-  _SERVICE_NAME: 'liveraid-service' # Cloud Run servis adı
-  _DB_INSTANCE_NAME: 'liveraid-postgres' # Cloud SQL instance adı (sadece adı, connection name değil)
+  _LOCATION: 'europe-west4' # Hata mesajında bu bölgeyi gördüm, seninkiyle değiştir.
+  _REPOSITORY: 'liveraid-public' # Artifact Registry'deki depo adın
+  _SERVICE_NAME: 'liveraid-service' # Cloud Run servis adın
+  _CLOUD_SQL_CONNECTION_NAME: 'tactile-vial-468307-d3:europe-west3:liveraid-postgres' # Tam Cloud SQL connection name
   # Secret Manager'daki gizli değerlerin ADLARI
   _DB_USER_SECRET_NAME: 'DB_USER'
   _DB_PASS_SECRET_NAME: 'DB_PASS'
@@ -80,8 +83,7 @@ substitutions:
   _FLASK_SECRET_KEY_SECRET_NAME: 'FLASK_SECRET_KEY'
   _GOOGLE_AI_API_KEY_SECRET_NAME: 'GOOGLE_AI_API_KEY'
   _OPENROUTER_API_KEY_SECRET_NAME: 'OPENROUTER_API_KEY'
-  _CLOUD_SQL_CONNECTION_NAME_SECRET_NAME: 'CLOUD_SQL_CONNECTION_NAME' # Bu secret'ı da oluşturman gerekecek
-
+  _CLOUD_SQL_CONNECTION_NAME_SECRET_NAME: 'CLOUD_SQL_CONNECTION_NAME'
 # Dağıtım tamamlandıktan sonra imajların saklanacağı yer
 images:
   - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
