@@ -28,5 +28,3 @@ Flask-Babel
 passlib
 google.genai
 reportlab
-alembic 
-sqlalchemy
