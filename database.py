@@ -71,7 +71,7 @@ class DatabaseManager:
         try:
             conn = self.connector.connect(
                 self.instance_connection_name,
-                "pg8000",
+                "psycopg2",
                 user=self.db_user,
                 password=self.db_password,
                 db=self.db_name,
