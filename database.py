@@ -26,8 +26,7 @@ class DatabaseManager:
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
 
-<<<<<<< HEAD
-=======
+
     def create_database_if_not_exists(self):
         """Create the database if it doesn't exist.
         Note: For Cloud SQL, the database is typically created through the GCP console or gcloud CLI.
@@ -65,7 +64,6 @@ class DatabaseManager:
             # Log the error but continue, assuming the DB exists and the issue might be permissions
             print(f"⚠️  Could not check or create database '{self.db_name}'. Please ensure it exists. Error: {e}")
 
->>>>>>> parent of 07ee83c (removed create_database_if_not_exist)
 
     @contextmanager
     def get_connection(self):
