@@ -13,9 +13,9 @@ from google.cloud.sql.connector import Connector, IPTypes
 class DatabaseManager:
     def __init__(self):
         # Variables from the first code snippet
-        self.db_user = os.environ.get('DB_USER', 'postgres')
+        self.db_user = os.environ.get('DB_USER')
         self.db_password = os.environ.get('DB_PASS')
-        self.db_name = os.environ.get("DB_NAME", "liver_assessment")
+        self.db_name = os.environ.get("DB_NAME")
         self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
 
         self.connector = Connector()
