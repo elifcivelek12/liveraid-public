@@ -23,7 +23,7 @@ class DatabaseManager:
         self.db_pass = os.environ.get("DB_PASS")
         self.db_name = os.environ.get("DB_NAME")
    
-        self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME)
+        self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
 
