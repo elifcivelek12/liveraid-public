@@ -1,27 +1,20 @@
 steps:
   # 1. Adım: Bağımlılıkları kur
   - name: 'python:3.9-slim'
-    id: 'Install Dependencies'
     entrypoint: 'pip'
     args: ['install', '-r', 'requirements.txt']
 
-  # 2. Adım: Alembic ile veritabanını güncelle
-  # Bu adım, Cloud Build'in Cloud SQL'e ve Secret Manager'daki bilgilere bağlanmasını sağlar.
   - name: 'gcr.io/google-appengine/exec-wrapper'
-    id: 'Run Alembic Migrations'
-    # Bu adimda kullanılacak secret'ları belirtiyoruz.
-    secretEnv: ['DB_USER', 'DB_PASS', 'DB_NAME', 'CLOUD_SQL_CONNECTION_NAME']
     args:
       - '-i'
       - 'gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.2'
-      # exec-wrapper'a, build ortamindaki degiskenleri proxy'nin icine aktarmasini soyluyoruz.
       - '-e'
-      - 'DB_USER'
-      - 'DB_PASS'
-      - 'DB_NAME'
-      - 'CLOUD_SQL_CONNECTION_NAME'
+      - 'DB_USER=${_DB_USER}' 
+      - 'DB_PASS=${_DB_PASS}'
+      - 'DB_NAME=${_DB_NAME}'
+      - 'CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME}'
       - '--'
-      - '${_CLOUD_SQL_CONNECTION_NAME}' # Bu değişkeni substitutions ile alacağız
+      - 'tactile-vial-468307-d3:europe-west3:liveraid-postgres'
       - '--'
       - 'alembic'
       - 'upgrade'
@@ -29,45 +22,16 @@ steps:
 
   # 3. Adım: Uygulamayı Cloud Run'a dağıt
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'Deploy to Cloud Run'
     entrypoint: 'gcloud'
-    # Bu adimda kullanılacak secret'ları belirtiyoruz.
-    secretEnv: ['DB_USER', 'DB_PASS', 'DB_NAME', 'FLASK_SECRET_KEY', 'GOOGLE_AI_API_KEY', 'OPENROUTER_API_KEY']
     args:
       - 'run'
       - 'deploy'
-      - 'liveraid-service' # Cloud Run servis adınız
+      - 'liveraid-service' 
       - '--source'
       - '.'
       - '--region'
-      - 'europe-west3' # Bölgeniz
+      - 'europe-west3' 
       - '--add-cloudsql-instances'
-      - '${_CLOUD_SQL_CONNECTION_NAME}'
-      # Cloud Run servisine ortam değişkenlerini set et.
-      # Değerleri, bu build adımının ortamından ($DB_USER vb.) alacak.
+      - 'tactile-vial-468307-d3:europe-west3:liveraid-postgres'
       - '--set-env-vars'
-      - '^##^DB_USER=${DB_USER}##DB_PASS=${DB_PASS}##DB_NAME=${DB_NAME}##CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME}##FLASK_SECRET_KEY=${FLASK_SECRET_KEY}##GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}##OPENROUTER_API_KEY=${OPENROUTER_API_KEY}'
-
-# Cloud Build'e hangi secret'ları kullanacağını söylüyoruz.
-availableSecrets:
-  secretManager:
-  - versionName: projects/YOUR_PROJECT_ID/secrets/YOUR_DB_USER_SECRET_NAME/versions/latest
-    env: 'DB_USER'
-  - versionName: projects/YOUR_PROJECT_ID/secrets/YOUR_DB_PASS_SECRET_NAME/versions/latest
-    env: 'DB_PASS'
-  - versionName: projects/YOUR_PROJECT_ID/secrets/YOUR_DB_NAME_SECRET_NAME/versions/latest
-    env: 'DB_NAME'
-  - versionName: projects/YOUR_PROJECT_ID/secrets/YOUR_FLASK_KEY_SECRET_NAME/versions/latest
-    env: 'FLASK_SECRET_KEY'
-  - versionName: projects/YOUR_PROJECT_ID/secrets/YOUR_GEMINI_API_KEY_SECRET_NAME/versions/latest
-    env: 'GOOGLE_AI_API_KEY'
-  - versionName: projects/YOUR_PROJECT_ID/secrets/YOUR_OPENROUTER_API_KEY_SECRET_NAME/versions/latest
-    env: 'OPENROUTER_API_KEY'
-    
-# Gizli olmayan ve komut satırından verilebilecek değişkenler
-substitutions:
-  _CLOUD_SQL_CONNECTION_NAME: 'tactile-vial-468307-d3:europe-west3:liveraid-postgres'
-
-options:
-  # Virgül yerine farklı bir ayırıcı kullanmak, gcloud komutunun doğru çalışmasını sağlar
-  env_separator: '##'
+      - 'DB_USER=${_DB_USER},DB_PASS=${_DB_PASS},DB_NAME=${_DB_NAME},CLOUD_SQL_CONNECTION_NAME=PROJE_ID:BOLGE:INSTANCE_ADI'
