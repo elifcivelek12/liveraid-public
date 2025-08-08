@@ -1,4 +1,3 @@
-
 """
 Database configuration and utilities for PostgreSQL using Cloud SQL Connector
 """
@@ -9,37 +8,74 @@ import psycopg2.extras
 from contextlib import contextmanager
 from typing import Dict, Any, List, Optional
 
-
 from google.cloud.sql.connector import Connector, IPTypes
-
-db = None
 
 class DatabaseManager:
     def __init__(self):
-   
-        self.connector = Connector()
-        
-        self.db_user = os.environ.get("DB_USER")
-        self.db_pass = os.environ.get("DB_PASS")
-        self.db_name = os.environ.get("DB_NAME")
-   
+        # Variables from the first code snippet
+        self.user = os.environ.get('DB_USER', 'postgres')
+        self.password = os.environ.get('DB_PASSWORD')
+        self.db_name = os.environ.get("DB_NAME", "liver_assessment")
         self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
 
+        self.connector = Connector()
+
+        # Initialization logic from the second code snippet
+        self.create_database_if_not_exists()
+        self.init_tables()
+
         print("✅ DatabaseManager initialized for Cloud SQL.")
+
+    def create_database_if_not_exists(self):
+        """Create the database if it doesn't exist.
+        Note: For Cloud SQL, the database is typically created through the GCP console or gcloud CLI.
+        This function will attempt to connect and verify its existence, but creation might fail
+        if the user does not have the necessary permissions.
+        """
+        try:
+            # Temporary connection to the default 'postgres' database to check for our db
+            conn = self.connector.connect(
+                self.instance_connection_name,
+                "pg8000",
+                user=self.user,
+                password=self.password,
+                db="postgres", # Connect to the default database
+                ip_type=IPTypes.PUBLIC
+            )
+            conn.autocommit = True
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT 1 FROM pg_catalog.pg_database WHERE datname = %s", (self.db_name,))
+            exists = cursor.fetchone()
+
+            if not exists:
+                print(f"Database '{self.db_name}' not found. Attempting to create...")
+                # The command below is not standard SQL and might not work on all postgres versions.
+                # It's generally better to create the database via the cloud provider's tools.
+                cursor.execute(f"CREATE DATABASE \"{self.db_name}\"")
+                print(f"✅ Database '{self.db_name}' created successfully.")
+            else:
+                print(f"✅ Database '{self.db_name}' already exists.")
+
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            # Log the error but continue, assuming the DB exists and the issue might be permissions
+            print(f"⚠️  Could not check or create database '{self.db_name}'. Please ensure it exists. Error: {e}")
+
 
     @contextmanager
     def get_connection(self):
         """Get database connection with context manager using Cloud SQL Connector"""
         conn = None
         try:
-            # Connector.connect metodu güvenli bağlantıyı otomatik olarak yönetir
             conn = self.connector.connect(
                 self.instance_connection_name,
-                "pg8000", # psycopg2 ile uyumlu bir sürücü
-                user=self.db_user,
-                password=self.db_pass,
+                "pg8000",
+                user=self.user,
+                password=self.password,
                 db=self.db_name,
-                ip_type=IPTypes.PUBLIC, # Genel IP üzerinden bağlanmasını söyle
+                ip_type=IPTypes.PUBLIC,
                 cursor_factory=psycopg2.extras.RealDictCursor
             )
             yield conn
@@ -51,9 +87,101 @@ class DatabaseManager:
         finally:
             if conn:
                 conn.close()
-            
+
+    def init_tables(self):
+        """Initialize database tables"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Create users table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        name_surname VARCHAR(255) NOT NULL,
+                        first_name VARCHAR(255) NOT NULL,
+                        last_name VARCHAR(255) NOT NULL,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        medical_field VARCHAR(255) NOT NULL,
+                        organization VARCHAR(255) NOT NULL,
+                        diploma_number VARCHAR(255) NOT NULL,
+                        years_experience INTEGER DEFAULT 0,
+                        phone VARCHAR(50) DEFAULT '',
+                        doctor_title VARCHAR(100) DEFAULT 'Dr.',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        is_active BOOLEAN DEFAULT TRUE
+                    )
+                """)
+
+                # Add missing columns if they don't exist
+                self._add_missing_columns(cursor)
+
+                # Create user_sessions table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS user_sessions (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        session_data JSONB,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                # Create index on email for faster lookups
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+
+                conn.commit()
+                print("✅ Database tables initialized successfully")
+
+        except Exception as e:
+            print(f"❌ Error initializing tables: {e}")
+
+    def _add_missing_columns(self, cursor):
+        """Add missing columns to the users table for backward compatibility."""
+        try:
+            # List of columns to check and their definitions
+            columns_to_add = {
+                'first_name': "VARCHAR(255) DEFAULT ''",
+                'last_name': "VARCHAR(255) DEFAULT ''",
+                'years_experience': "INTEGER DEFAULT 0",
+                'phone': "VARCHAR(50) DEFAULT ''",
+                'doctor_title': "VARCHAR(100) DEFAULT 'Dr.'"
+            }
+
+            for col, definition in columns_to_add.items():
+                cursor.execute("""
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name='users' AND column_name=%s
+                """, (col,))
+                if not cursor.fetchone():
+                    print(f"Adding column '{col}' to 'users' table...")
+                    cursor.execute(f"ALTER TABLE users ADD COLUMN {col} {definition}")
+                    print(f"✅ Column '{col}' added.")
+
+            # Logic to populate first_name and last_name from name_surname for old records
+            cursor.execute("""
+                UPDATE users
+                SET first_name = SPLIT_PART(name_surname, ' ', 1),
+                    last_name = CASE
+                        WHEN ARRAY_LENGTH(STRING_TO_ARRAY(name_surname, ' '), 1) > 1
+                        THEN SUBSTRING(name_surname FROM POSITION(' ' IN name_surname) + 1)
+                        ELSE ''
+                    END
+                WHERE (first_name IS NULL OR first_name = '') AND name_surname IS NOT NULL AND name_surname != ''
+            """)
+            # Set NOT NULL constraint after populating
+            cursor.execute("ALTER TABLE users ALTER COLUMN first_name SET NOT NULL")
+            cursor.execute("ALTER TABLE users ALTER COLUMN last_name SET NOT NULL")
+
+        except Exception as e:
+            print(f"❌ Error adding missing columns: {e}")
+            # Rollback is handled by the main context manager, but we raise to signal failure
+            raise e
+
+
     def create_user(self, email: str, password: str, first_name: str, last_name: str,
-                   medical_field: str, organization: str, diploma_number: str, 
+                   medical_field: str, organization: str, diploma_number: str,
                    years_experience: int = 0, phone: str = "", doctor_title: str = "Dr.") -> Optional[int]:
         """Create a new user"""
         try:
@@ -70,34 +198,46 @@ class DatabaseManager:
                 conn.commit()
                 return user_id
         except psycopg2.IntegrityError:
+            # This error is raised when a unique constraint (like email) is violated
             return None
         except Exception as e:
             print(f"❌ Error creating user: {e}")
             return None
-    
+
     def verify_user_credentials(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+        """Verify user credentials and return user data if valid."""
         return self.verify_user(email, password)
-    
+
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Get user details by their email address."""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id, first_name, last_name, email, medical_field, organization, diploma_number, doctor_title FROM users WHERE email = %s AND is_active = TRUE", (email,))
+                cursor.execute("""
+                    SELECT id, first_name, last_name, email, medical_field, organization, diploma_number, doctor_title
+                    FROM users
+                    WHERE email = %s AND is_active = TRUE
+                """, (email,))
                 user = cursor.fetchone()
                 return dict(user) if user else None
         except Exception as e:
             print(f"❌ Error getting user by email: {e}")
             return None
-    
+
     def verify_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+        """Verify a user's email and password."""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id, first_name, last_name, email, password_hash, medical_field, organization, diploma_number, doctor_title FROM users WHERE email = %s AND is_active = TRUE", (email,))
+                cursor.execute("""
+                    SELECT id, first_name, last_name, email, password_hash, medical_field, organization, diploma_number, doctor_title
+                    FROM users
+                    WHERE email = %s AND is_active = TRUE
+                """, (email,))
                 user = cursor.fetchone()
                 if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
                     user_data = dict(user)
-                    del user_data['password_hash']
+                    del user_data['password_hash']  # Do not send the hash to the client
                     return user_data
                 return None
         except Exception as e:
@@ -105,28 +245,38 @@ class DatabaseManager:
             return None
 
     def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get user details by their user ID."""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id, first_name, last_name, email, medical_field, organization, diploma_number, doctor_title FROM users WHERE id = %s AND is_active = TRUE", (user_id,))
+                cursor.execute("""
+                    SELECT id, first_name, last_name, email, medical_field, organization, diploma_number, doctor_title
+                    FROM users
+                    WHERE id = %s AND is_active = TRUE
+                """, (user_id,))
                 user = cursor.fetchone()
                 return dict(user) if user else None
         except Exception as e:
-            print(f"❌ Error getting user: {e}")
+            print(f"❌ Error getting user by ID: {e}")
             return None
 
     def email_exists(self, email: str) -> bool:
+        """Check if an email already exists in the database."""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1 FROM users WHERE email = %s", (email,))
                 return cursor.fetchone() is not None
         except Exception as e:
-            print(f"❌ Error checking email: {e}")
+            print(f"❌ Error checking for email existence: {e}")
             return False
-            
+
     def get_doctor_titles(self) -> List[str]:
-        return ["Dr.", "Prof. Dr.", "Doç. Dr.", "Öğr. Gör. Dr.", "Uzm. Dr.", "Op. Dr.", "Dt.", "Vet.", "Ebe", "Hemşire"]
+        """Returns a static list of predefined doctor titles."""
+        return [
+            "Dr.", "Prof. Dr.", "Doç. Dr.", "Öğr. Gör. Dr.", "Uzm. Dr.",
+            "Op. Dr.", "Dt.", "Vet.", "Ebe", "Hemşire"
+        ]
 
-
+# Global database instance
 db = DatabaseManager()
