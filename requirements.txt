@@ -17,6 +17,7 @@ catboost
 
 openai
 google-generativeai
+google.genai
 markdown
 beautifulsoup4
 
@@ -25,3 +26,7 @@ Pillow
 requests
 python-dotenv
 
+dotenv
+openai
+markdown
+bs4
