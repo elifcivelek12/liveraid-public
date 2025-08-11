@@ -1825,3 +1825,15 @@ if __name__ == '__main__':
     print("Database ready!")
     
     app.run(debug=False, host='0.0.0.0', port=5002)
+    
+    # app.py dosyasının sonuna doğru
+
+if __name__ == '__main__':
+    # Uygulamayı başlatmadan önce veritabanı bağlantısını doğrula
+    from database import db
+    if db.verify_database_connection():
+        # Port numarasını ortam değişkeninden al veya varsayılan olarak 5002 kullan
+        port = int(os.environ.get("PORT", 5002))
+        app.run(host='0.0.0.0', port=port)
+    else:
+        print("❌ Application startup failed due to database connection issues. Please check the logs.")

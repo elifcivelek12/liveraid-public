@@ -29,17 +29,16 @@ class DatabaseManager:
 
     # database.py dosyanızın içine eklenecek veya mevcut olanı değiştirecek
 
-def verify_database_connection(self):
-    try:
-        # get_connection metodunu kullanarak bir bağlantı açmayı dene.
-        # Bu metot zaten Cloud SQL Connector'ı ve doğru kimlik bilgilerini kullanıyor.
-        print(f"Attempting to verify connection to database '{self.db_name}'...")
+    def verify_database_connection(self):
+        try:
+       
+            print(f"Attempting to verify connection to database '{self.db_name}'...")
         
-        with self.get_connection() as conn:
-            # Bağlantı başarılı olursa, basit bir sorgu çalıştırarak teyit et.
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1")
-            result = cursor.fetchone()
+            with self.get_connection() as conn:
+                # Bağlantı başarılı olursa, basit bir sorgu çalıştırarak teyit et.
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                result = cursor.fetchone()
             
             if result:
                 print(f"✅ Successfully connected to database '{self.db_name}'. Connection is valid.")
@@ -49,16 +48,16 @@ def verify_database_connection(self):
                 print(f"⚠️  Connected to '{self.db_name}', but test query failed.")
                 return False
 
-    except Exception as e:
-        # get_connection içinde zaten bir hata loglaması var, ama burada daha spesifik bir mesaj verelim.
-        print(f"❌ FAILED to connect to database '{self.db_name}'.")
-        print("Please check the following:")
-        print("1. The database name in your environment variables is correct.")
-        print("2. The Cloud SQL instance is running.")
-        print("3. The service account has the 'Cloud SQL Client' role in IAM.")
-        print("4. The Cloud SQL Connection Name is correct.")
-        print(f"Underlying error: {e}")
-        return False
+        except Exception as e:
+            # get_connection içinde zaten bir hata loglaması var, ama burada daha spesifik bir mesaj verelim.
+            print(f"❌ FAILED to connect to database '{self.db_name}'.")
+            print("Please check the following:")
+            print("1. The database name in your environment variables is correct.")
+            print("2. The Cloud SQL instance is running.")
+            print("3. The service account has the 'Cloud SQL Client' role in IAM.")
+            print("4. The Cloud SQL Connection Name is correct.")
+            print(f"Underlying error: {e}")
+            return False
 
     @contextmanager
     def get_connection(self):
