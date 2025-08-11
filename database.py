@@ -21,50 +21,52 @@ class DatabaseManager:
 
         self.connector = Connector()
 
-        # Initialization logic from the second code snippet
+        
         # self.create_database_if_not_exists()
         self.init_tables()
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
 
-    '''
-    def create_database_if_not_exists(self):
-        """Create the database if it doesn't exist.
-        Note: For Cloud SQL, the database is typically created through the GCP console or gcloud CLI.
-        This function will attempt to connect and verify its existence, but creation might fail
-        if the user does not have the necessary permissions.
-        """
-        try:
-            # Temporary connection to the default 'postgres' database to check for our db
-            conn = self.connector.connect(
-                self.instance_connection_name,
-                "pg8000",
-                user=self.db_user,
-                password=self.db_password,
-                db="postgres", # Connect to the default database
-                ip_type=IPTypes.PUBLIC
-            )
-            conn.autocommit = True
+    # database.py dosyanızın içine eklenecek veya mevcut olanı değiştirecek
+
+def verify_database_connection(self):
+    """
+    Verifies that a connection to the specified database can be established.
+
+    For Cloud SQL, the database (`self.db_name`) must be created beforehand
+    using the Google Cloud Console or gcloud CLI. This function checks if the
+    application can successfully connect to it using the provided credentials
+    and Cloud SQL Connector.
+    """
+    try:
+        # get_connection metodunu kullanarak bir bağlantı açmayı dene.
+        # Bu metot zaten Cloud SQL Connector'ı ve doğru kimlik bilgilerini kullanıyor.
+        print(f"Attempting to verify connection to database '{self.db_name}'...")
+        
+        with self.get_connection() as conn:
+            # Bağlantı başarılı olursa, basit bir sorgu çalıştırarak teyit et.
             cursor = conn.cursor()
-
-            cursor.execute("SELECT 1 FROM pg_catalog.pg_database WHERE datname = %s", (self.db_name,))
-            exists = cursor.fetchone()
-
-            if not exists:
-                print(f"Database '{self.db_name}' not found. Attempting to create...")
-                # The command below is not standard SQL and might not work on all postgres versions.
-                # It's generally better to create the database via the cloud provider's tools.
-                cursor.execute(f"CREATE DATABASE \"{self.db_name}\"")
-                print(f"✅ Database '{self.db_name}' created successfully.")
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            
+            if result:
+                print(f"✅ Successfully connected to database '{self.db_name}'. Connection is valid.")
+                return True
             else:
-                print(f"✅ Database '{self.db_name}' already exists.")
+                # Bu durumun gerçekleşmesi çok olası değil ama her ihtimale karşı.
+                print(f"⚠️  Connected to '{self.db_name}', but test query failed.")
+                return False
 
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            # Log the error but continue, assuming the DB exists and the issue might be permissions
-            print(f"⚠️  Could not check or create database '{self.db_name}'. Please ensure it exists. Error: {e}")
-    '''
+    except Exception as e:
+        # get_connection içinde zaten bir hata loglaması var, ama burada daha spesifik bir mesaj verelim.
+        print(f"❌ FAILED to connect to database '{self.db_name}'.")
+        print("Please check the following:")
+        print("1. The database name in your environment variables is correct.")
+        print("2. The Cloud SQL instance is running.")
+        print("3. The service account has the 'Cloud SQL Client' role in IAM.")
+        print("4. The Cloud SQL Connection Name is correct.")
+        print(f"Underlying error: {e}")
+        return False
 
     @contextmanager
     def get_connection(self):

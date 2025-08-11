@@ -414,7 +414,7 @@ def register():
                 years_experience=int(form_data['years_experience']),
                 phone=form_data['phone'],
                 doctor_title=form_data['doctor_title']
-            )
+                )
             flash(i18n.t('auth.registrationSuccess'), 'success')
             return redirect(url_for('login'))
         except Exception as e:
