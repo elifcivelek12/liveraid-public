@@ -22,7 +22,7 @@ class DatabaseManager:
         self.connector = Connector()
 
         # Initialization logic from the second code snippet
-        self.create_database_if_not_exists()
+        # self.create_database_if_not_exists()
         self.init_tables()
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
