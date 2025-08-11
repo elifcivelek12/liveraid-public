@@ -41,7 +41,7 @@ class DatabaseManager:
                 password=self.db_password,
                 db=self.db_name,
                 ip_type=IPTypes.PRIVATE,
-                cursor_factory=psycopg2.extras.RealDictCursor
+#               cursor_factory=psycopg2.extras.RealDictCursor
             )
             yield conn
         except Exception as e:
@@ -230,7 +230,7 @@ class DatabaseManager:
         """Verify a user's email and password."""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor()
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cursor.execute("""
                     SELECT id, first_name, last_name, email, password_hash, medical_field, organization, diploma_number, doctor_title
                     FROM users
