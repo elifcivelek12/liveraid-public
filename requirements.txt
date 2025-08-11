@@ -26,4 +26,5 @@ SQLAlchemy
 beautifulsoup4
 Flask-Babel
 passlib
+google.genai
 reportlab
