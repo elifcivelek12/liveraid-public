@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 
 from google.cloud.sql.connector import Connector, IPTypes
 
+
 class DatabaseManager:
     def __init__(self):
         # Variables from the first code snippet
@@ -26,7 +27,7 @@ class DatabaseManager:
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
 
-
+    '''
     def create_database_if_not_exists(self):
         """Create the database if it doesn't exist.
         Note: For Cloud SQL, the database is typically created through the GCP console or gcloud CLI.
@@ -63,7 +64,7 @@ class DatabaseManager:
         except Exception as e:
             # Log the error but continue, assuming the DB exists and the issue might be permissions
             print(f"⚠️  Could not check or create database '{self.db_name}'. Please ensure it exists. Error: {e}")
-
+    '''
 
     @contextmanager
     def get_connection(self):
@@ -72,7 +73,7 @@ class DatabaseManager:
         try:
             conn = self.connector.connect(
                 self.instance_connection_name,
-                "psycopg2",
+                "pg8000",
                 user=self.db_user,
                 password=self.db_password,
                 db=self.db_name,
@@ -88,7 +89,8 @@ class DatabaseManager:
         finally:
             if conn:
                 conn.close()
-
+                
+    '''
     def init_tables(self):
         """Initialize database tables"""
         try:
@@ -137,7 +139,10 @@ class DatabaseManager:
 
         except Exception as e:
             print(f"❌ Error initializing tables: {e}")
+            
+    '''
 
+    '''
     def _add_missing_columns(self, cursor):
         """Add missing columns to the users table for backward compatibility."""
         try:
@@ -179,6 +184,7 @@ class DatabaseManager:
             print(f"❌ Error adding missing columns: {e}")
             # Rollback is handled by the main context manager, but we raise to signal failure
             raise e
+    '''
 
 
     def create_user(self, email: str, password: str, first_name: str, last_name: str,
