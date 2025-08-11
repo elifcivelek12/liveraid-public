@@ -29,6 +29,32 @@ class DatabaseManager:
 
     # database.py dosyanızın içine eklenecek veya mevcut olanı değiştirecek
 
+    @contextmanager
+    def get_connection(self):
+        """Get database connection with context manager using Cloud SQL Connector"""
+        conn = None
+        try:
+            conn = self.connector.connect(
+                self.instance_connection_name,
+                "pg8000",
+                user=self.db_user,
+                password=self.db_password,
+                db=self.db_name,
+                ip_type=IPTypes.PRIVATE,
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+            yield conn
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"❌ Database connection error: {e}")
+            raise e
+        finally:
+            if conn:
+                conn.close()
+                
+                
+                
     def verify_database_connection(self):
         try:
        
@@ -58,30 +84,6 @@ class DatabaseManager:
             print("4. The Cloud SQL Connection Name is correct.")
             print(f"Underlying error: {e}")
             return False
-
-    @contextmanager
-    def get_connection(self):
-        """Get database connection with context manager using Cloud SQL Connector"""
-        conn = None
-        try:
-            conn = self.connector.connect(
-                self.instance_connection_name,
-                "pg8000",
-                user=self.db_user,
-                password=self.db_password,
-                db=self.db_name,
-                ip_type=IPTypes.PRIVATE,
-                cursor_factory=psycopg2.extras.RealDictCursor
-            )
-            yield conn
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            print(f"❌ Database connection error: {e}")
-            raise e
-        finally:
-            if conn:
-                conn.close()
                 
     
     def init_tables(self):
