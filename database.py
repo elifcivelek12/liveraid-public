@@ -15,7 +15,7 @@ class DatabaseManager:
     def __init__(self):
         # Variables from the first code snippet
         self.db_user = os.environ.get('DB_USER')
-        self.db_password = os.environ.get('DB_PASS')
+        self.db_pass = os.environ.get('DB_PASS')
         self.db_name = os.environ.get("DB_NAME")
         self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
 
@@ -38,9 +38,9 @@ class DatabaseManager:
                 self.instance_connection_name,
                 "pg8000",
                 user=self.db_user,
-                password=self.db_password,
+                password=self.db_pass,
                 db=self.db_name,
-                ip_type=IPTypes.PRIVATE,
+#                ip_type=IPTypes.PRIVATE,
 #               cursor_factory=psycopg2.extras.RealDictCursor
             )
             yield conn
