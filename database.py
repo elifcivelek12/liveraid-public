@@ -30,14 +30,6 @@ class DatabaseManager:
     # database.py dosyanızın içine eklenecek veya mevcut olanı değiştirecek
 
 def verify_database_connection(self):
-    """
-    Verifies that a connection to the specified database can be established.
-
-    For Cloud SQL, the database (`self.db_name`) must be created beforehand
-    using the Google Cloud Console or gcloud CLI. This function checks if the
-    application can successfully connect to it using the provided credentials
-    and Cloud SQL Connector.
-    """
     try:
         # get_connection metodunu kullanarak bir bağlantı açmayı dene.
         # Bu metot zaten Cloud SQL Connector'ı ve doğru kimlik bilgilerini kullanıyor.
@@ -92,7 +84,7 @@ def verify_database_connection(self):
             if conn:
                 conn.close()
                 
-    '''
+    
     def init_tables(self):
         """Initialize database tables"""
         try:
@@ -142,7 +134,7 @@ def verify_database_connection(self):
         except Exception as e:
             print(f"❌ Error initializing tables: {e}")
             
-    '''
+    
 
     '''
     def _add_missing_columns(self, cursor):
