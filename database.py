@@ -14,24 +14,13 @@ from google.cloud.sql.connector import Connector, IPTypes
 class DatabaseManager:
     def __init__(self):
         # Variables from the first code snippet
-        self.db_user = os.environ.get('DB_USER', '').strip()
-        
-        # --- Hata Ayıklama İçin Eklenecek Kod ---
-        
-        raw_user = os.environ.get('DB_USER')
-        print(f"Raw DB_USER value: '{raw_user}'")
-        print(f"Representation of raw DB_USER: {repr(raw_user)}")
-        print(f"Stripped DB_USER value being used: '{self.db_user}'")
-        
-        
+        self.db_user = os.environ.get('DB_USER', '').strip()         
         self.db_pass = os.environ.get('DB_PASS', '').strip()
         self.db_name = os.environ.get("DB_NAME", '').strip()
         self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME", '').strip()
 
         self.connector = Connector()
 
-        
-        # self.create_database_if_not_exists()
         self.init_tables()
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
@@ -49,7 +38,7 @@ class DatabaseManager:
                 user=self.db_user,
                 password=self.db_pass,
                 db=self.db_name,
-#                ip_type=IPTypes.PRIVATE,
+#               ip_type=IPTypes.PRIVATE,
 #               cursor_factory=psycopg2.extras.RealDictCursor
             )
             yield conn
@@ -120,20 +109,25 @@ class DatabaseManager:
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         is_active BOOLEAN DEFAULT TRUE
                     )
+                    
                 """)
-
+                cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS user_sessions (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        session_data JSONB,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )                
+                """)                
+                '''
                 # Add missing columns if they don't exist
                 self._add_missing_columns(cursor)
 
                 # Create user_sessions table
                 cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS user_sessions (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                        session_data JSONB,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
+                    
                 """)
+                '''
 
                 # Create index on email for faster lookups
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
@@ -144,8 +138,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"❌ Error initializing tables: {e}")
             
-    
-
+        
     '''
     def _add_missing_columns(self, cursor):
         """Add missing columns to the users table for backward compatibility."""
@@ -188,7 +181,9 @@ class DatabaseManager:
             print(f"❌ Error adding missing columns: {e}")
             # Rollback is handled by the main context manager, but we raise to signal failure
             raise e
+    
     '''
+    
 
 
     def create_user(self, email: str, password: str, first_name: str, last_name: str,
