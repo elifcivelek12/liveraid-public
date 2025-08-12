@@ -14,10 +14,19 @@ from google.cloud.sql.connector import Connector, IPTypes
 class DatabaseManager:
     def __init__(self):
         # Variables from the first code snippet
-        self.db_user = os.environ.get('DB_USER')
-        self.db_pass = os.environ.get('DB_PASS')
-        self.db_name = os.environ.get("DB_NAME")
-        self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
+        self.db_user = os.environ.get('DB_USER', '').strip()
+        
+        # --- Hata Ayıklama İçin Eklenecek Kod ---
+        
+        raw_user = os.environ.get('DB_USER')
+        print(f"Raw DB_USER value: '{raw_user}'")
+        print(f"Representation of raw DB_USER: {repr(raw_user)}")
+        print(f"Stripped DB_USER value being used: '{self.db_user}'")
+        
+        
+        self.db_pass = os.environ.get('DB_PASS', '').strip()
+        self.db_name = os.environ.get("DB_NAME", '').strip()
+        self.instance_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME", '').strip()
 
         self.connector = Connector()
 
