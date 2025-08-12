@@ -20,7 +20,6 @@ Flask-Login==0.6.3
 requests==2.31.0
 psycopg2-binary
 cloud-sql-python-connector[pg8000]
-google-cloud-sql-connector[pg8000]
 bcrypt
 gunicorn
 SQLAlchemy
