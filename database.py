@@ -41,6 +41,7 @@ class DatabaseManager:
 #               ip_type=IPTypes.PRIVATE,
 #               cursor_factory=psycopg2.extras.RealDictCursor
             )
+            self.verify_database_connection()
             yield conn
         except Exception as e:
             if conn:
@@ -74,13 +75,13 @@ class DatabaseManager:
 
         except Exception as e:
             # get_connection içinde zaten bir hata loglaması var, ama burada daha spesifik bir mesaj verelim.
-            print(f"❌ FAILED to connect to database '{self.db_name}'.")
+            print(f"❌ FAILED to connect to database '{self.db_name}': {e}")
             print("Please check the following:")
             print("1. The database name in your environment variables is correct.")
             print("2. The Cloud SQL instance is running.")
             print("3. The service account has the 'Cloud SQL Client' role in IAM.")
             print("4. The Cloud SQL Connection Name is correct.")
-            print(f"Underlying error: {e}")
+            print(f"Underlying error: ")
             return False
                 
     
