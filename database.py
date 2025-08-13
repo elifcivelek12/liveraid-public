@@ -25,7 +25,6 @@ class DatabaseManager:
 
         print("✅ DatabaseManager initialized for Cloud SQL.")
 
-    # database.py dosyanızın içine eklenecek veya mevcut olanı değiştirecek
 
     @contextmanager
     def get_connection(self):
@@ -201,11 +200,10 @@ class DatabaseManager:
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (name_surname, email, password_hash, medical_field, organization, diploma_number, first_name, last_name, years_experience, phone, doctor_title))
-                user_id = cursor.fetchone()['id']
+                user_id = cursor.fetchone()[0]
                 conn.commit()
                 return user_id
         except psycopg2.IntegrityError:
-            # This error is raised when a unique constraint (like email) is violated
             return None
         except Exception as e:
             print(f"❌ Error creating user: {e}")
@@ -216,17 +214,18 @@ class DatabaseManager:
         return self.verify_user(email, password)
 
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
-        """Get user details by their email address."""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor()
+                # DEĞİŞİKLİK: İmleci RealDictCursor olarak ayarlayın
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cursor.execute("""
                     SELECT id, first_name, last_name, email, medical_field, organization, diploma_number, doctor_title
                     FROM users
                     WHERE email = %s AND is_active = TRUE
                 """, (email,))
                 user = cursor.fetchone()
-                return dict(user) if user else None
+                # Artık 'user' zaten bir sözlük olduğu için dict() çağırmaya gerek yok
+                return user if user else None
         except Exception as e:
             print(f"❌ Error getting user by email: {e}")
             return None
@@ -255,14 +254,14 @@ class DatabaseManager:
         """Get user details by their user ID."""
         try:
             with self.get_connection() as conn:
-                cursor = conn.cursor()
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cursor.execute("""
                     SELECT id, first_name, last_name, email, medical_field, organization, diploma_number, doctor_title
                     FROM users
                     WHERE id = %s AND is_active = TRUE
                 """, (user_id,))
                 user = cursor.fetchone()
-                return dict(user) if user else None
+                return user if user else None
         except Exception as e:
             print(f"❌ Error getting user by ID: {e}")
             return None
